@@ -1,36 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# whoop-web
 
-## Getting Started
+A web dashboard for WHOOP data.
 
-First, run the development server:
+It reads from the Convex backend of [willzeng274/whoop-ios](https://github.com/willzeng274/whoop-ios/tree/william/feature-additions), a fork of Harley Zhang's [harleyhzhang/whoop-ios](https://github.com/harleyhzhang/whoop-ios). The phone app keeps the full data locally and syncs a compact daily summary to Convex. This site shows that summary: recovery, sleep, strain, steps, HRV, resting heart rate, activities with heart-rate zones, and strap status.
 
-```bash
+## Setup
+
+```sh
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Environment variables (`.env.local` locally, project settings on Vercel):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Name | Purpose |
+| --- | --- |
+| `CONVEX_SITE_URL` | HTTP actions URL of the whoop-ios Convex deployment |
+| `WHOOP_WEB_READ_TOKEN` | Bearer token for `/v1/web/dashboard` and `/v1/web/attempt` |
+| `SITE_PASSCODE` | 4-digit passcode for the login screen |
+| `SESSION_SECRET` | Signs the 30-day session cookie |
+| `WHOOP_TIME_ZONE` | Optional, defaults to `America/Toronto` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Access
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The site is behind a 4-digit passcode that is checked on the server. Convex limits wrong attempts to 2 per IP address and 10 overall per UTC day. Crawlers are blocked through `robots.txt`, `X-Robots-Tag` headers, and noindex meta tags.
