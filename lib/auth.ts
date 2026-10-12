@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 const SESSION_COOKIE = "whoop_session";
 const SESSION_DAYS = 30;
@@ -25,6 +25,39 @@ function equal(a: string, b: string): boolean {
 
 export function passcodeMatches(candidate: string): boolean {
   return equal(candidate, env("SITE_PASSCODE"));
+}
+
+/** Keyed hash of the caller's IP, so Convex never stores raw addresses. */
+async function clientKey(): Promise<string> {
+  const list = await headers();
+  const ip = list.get("x-forwarded-for")?.split(",")[0]?.trim() || list.get("x-real-ip") || "unknown";
+  return createHmac("sha256", env("SESSION_SECRET")).update(`attempt:${ip}`).digest("hex");
+}
+
+async function attempt(body: { key: string; release?: boolean }): Promise<{ allowed?: boolean }> {
+  const site = env("CONVEX_SITE_URL").replace(/\/$/, "");
+  const response = await fetch(`${site}/v1/web/attempt`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${env("WHOOP_WEB_READ_TOKEN")}`, "content-type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Attempt limiter failed: ${response.status}`);
+  return response.json();
+}
+
+/** Spends one of today's tries; false once the limit is hit (or the limiter is unreachable). */
+export async function reserveAttempt(): Promise<{ key: string; allowed: boolean }> {
+  const key = await clientKey();
+  try {
+    return { key, allowed: (await attempt({ key })).allowed === true };
+  } catch {
+    return { key, allowed: false };
+  }
+}
+
+export async function releaseAttempt(key: string): Promise<void> {
+  await attempt({ key, release: true }).catch(() => undefined);
 }
 
 export async function signIn(): Promise<void> {

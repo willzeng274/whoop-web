@@ -2,14 +2,16 @@
 
 import { redirect } from "next/navigation";
 
-import { passcodeMatches, signIn } from "@/lib/auth";
+import { passcodeMatches, releaseAttempt, reserveAttempt, signIn } from "@/lib/auth";
 
-export async function unlock(code: string): Promise<boolean> {
-  if (!/^\d{4}$/.test(code) || !passcodeMatches(code)) {
-    // Slow down guessing a little.
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    return false;
-  }
+export type UnlockResult = "wrong" | "locked";
+
+export async function unlock(code: string): Promise<UnlockResult> {
+  if (!/^\d{4}$/.test(code)) return "wrong";
+  const { key, allowed } = await reserveAttempt();
+  if (!allowed) return "locked";
+  if (!passcodeMatches(code)) return "wrong";
+  await releaseAttempt(key);
   await signIn();
   redirect("/");
 }

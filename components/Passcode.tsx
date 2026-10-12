@@ -14,19 +14,20 @@ const LENGTH = 4;
 export function Passcode() {
   const [code, setCode] = useState("");
   const [misses, setMisses] = useState(0);
+  const [locked, setLocked] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function submit(value: string) {
     startTransition(async () => {
-      if (!(await unlock(value))) {
-        setMisses((n) => n + 1);
-        setCode("");
-      }
+      const result = await unlock(value);
+      if (result === "locked") setLocked(true);
+      setMisses((n) => n + 1);
+      setCode("");
     });
   }
 
   function press(digit: string) {
-    if (pending || code.length >= LENGTH) return;
+    if (pending || locked || code.length >= LENGTH) return;
     const next = code + digit;
     setCode(next);
     if (next.length === LENGTH) submit(next);
@@ -50,7 +51,7 @@ export function Passcode() {
   return (
     <div className="flex flex-col items-center gap-10">
       <div className="flex flex-col items-center gap-6">
-        <h1 className="text-xl">Enter Passcode</h1>
+        <h1 className="text-xl">{locked ? "Try again tomorrow" : "Enter Passcode"}</h1>
         <div key={misses} className={`flex gap-6 ${misses ? "animate-shake" : ""}`}>
           {Array.from({ length: LENGTH }, (_, index) => (
             <span key={index}
@@ -58,7 +59,7 @@ export function Passcode() {
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-x-6 gap-y-4">
+      <div className={`grid grid-cols-3 gap-x-6 gap-y-4 transition-opacity ${locked ? "pointer-events-none opacity-30" : ""}`}>
         {KEYS.map(([digit, letters]) => (
           <button key={digit} type="button" className={key} onClick={() => press(digit)}>
             <span className="text-3xl leading-none">{digit}</span>
