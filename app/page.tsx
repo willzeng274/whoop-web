@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { Bars, Rings, ZoneBreakdown } from "@/components/charts";
 import { DatePicker } from "@/components/DatePicker";
+import { isSignedIn } from "@/lib/auth";
 import { loadDashboard, type Activity, type Day } from "@/lib/data";
 import {
   ago, clock, dayKey, longDate, METRICS, metric, palette, recoveryColor, requestTime, shiftDay, shortDate,
@@ -30,6 +32,7 @@ function Value({ m, value, className }: { m: Metric; value?: number; className?:
 }
 
 export default async function Home({ searchParams }: { searchParams: Promise<Search> }) {
+  if (!(await isSignedIn())) redirect("/login");
   const params = await searchParams;
   const { days, activities, status } = await loadDashboard();
   const now = requestTime();
